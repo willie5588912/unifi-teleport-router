@@ -1,0 +1,13 @@
+Package: teleport-route-checker
+Version: 1.0.0
+Section: net
+Priority: optional
+Architecture: all
+Depends: systemd, iproute2, gawk
+Maintainer: Will Shih <will@example.com>
+Description: Automatic route management for Teleport interfaces
+ This package provides a systemd service that automatically manages
+ network routes for Teleport (tlprtX) interfaces on UniFi gateways.
+ .
+ It monitors for new Teleport connections and adds appropriate routes
+ to ensure proper connectivity for devices connecting via Teleport.

@@ -1,0 +1,15 @@
+[Unit]
+Description=Teleport Route Checker Service
+Documentation=man:systemd.service(5)
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/teleport-route-checker
+User=root
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=teleport-route-checker
+
+[Install]
+WantedBy=multi-user.target

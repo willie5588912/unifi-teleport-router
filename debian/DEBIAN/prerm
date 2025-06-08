@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+# Stop and disable the timer
+systemctl stop teleport-route-checker.timer || true
+systemctl disable teleport-route-checker.timer || true
+
+echo "Teleport Route Checker service stopped and disabled"

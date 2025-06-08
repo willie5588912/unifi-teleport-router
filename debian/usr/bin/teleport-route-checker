@@ -1,0 +1,94 @@
+#!/bin/bash
+# Teleport Route Checker - Automatically manage routes for teleport interfaces
+# Author: Will Shih
+# Version: 1.0
+
+set -euo pipefail
+
+LOG_TAG="teleport-route-checker"
+DRY_RUN=${DRY_RUN:-false}
+
+log_info() {
+    logger -t "$LOG_TAG" -p user.info "$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $1"
+}
+
+log_error() {
+    logger -t "$LOG_TAG" -p user.err "$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" >&2
+}
+
+execute_cmd() {
+    local cmd="$1"
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_info "[DRY RUN] Would execute: $cmd"
+        return 0
+    else
+        log_info "Executing: $cmd"
+        eval "$cmd"
+    fi
+}
+
+check_and_add_routes() {
+    local interfaces
+    interfaces=$(ip link show | grep -o 'tlprt[0-9]\+' | sort -u || true)
+    
+    if [[ -z "$interfaces" ]]; then
+        log_info "No teleport interfaces found"
+        return 0
+    fi
+    
+    for iface in $interfaces; do
+        # Get the target IP from the kernel routing table
+        local target_ip
+        target_ip=$(awk -v iface="$iface" '
+            $1 == iface {
+                # Convert hex IP to dotted decimal (little-endian)
+                ip = $2
+                a = strtonum("0x" substr(ip, 7, 2))
+                b = strtonum("0x" substr(ip, 5, 2))
+                c = strtonum("0x" substr(ip, 3, 2))
+                d = strtonum("0x" substr(ip, 1, 2))
+                print a "." b "." c "." d
+            }
+        ' /proc/net/route)
+        
+        if [[ -z "$target_ip" ]]; then
+            log_info "No target IP found for $iface in routing table"
+            continue
+        fi
+        
+        # Check if route already exists
+        if ip route show | grep -q "^$target_ip dev $iface"; then
+            log_info "Route for $target_ip via $iface already exists"
+        else
+            log_info "Adding route: $target_ip via $iface"
+            execute_cmd "ip route add $target_ip dev $iface scope link"
+        fi
+    done
+}
+
+# Main execution
+main() {
+    log_info "Starting teleport route checker"
+    
+    # Check if running as root
+    if [[ $EUID -ne 0 ]]; then
+        log_error "This script must be run as root"
+        exit 1
+    fi
+    
+    # Check for required commands
+    for cmd in ip logger; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            log_error "Required command '$cmd' not found"
+            exit 1
+        fi
+    done
+    
+    check_and_add_routes
+    log_info "Teleport route checker completed"
+}
+
+# Run main function
+main "$@"

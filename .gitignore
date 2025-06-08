@@ -1,0 +1,11 @@
+# Vim swap files
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.deb
+
+# Temporary files
+.DS_Store
+Thumbs.db

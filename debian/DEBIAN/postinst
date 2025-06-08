@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+# Reload systemd daemon
+systemctl daemon-reload
+
+# Enable and start the timer
+systemctl enable teleport-route-checker.timer
+systemctl start teleport-route-checker.timer
+
+echo "Teleport Route Checker installed and started successfully"
+echo "Check status with: systemctl status teleport-route-checker.timer"
